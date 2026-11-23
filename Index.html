@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Legends of the Lost World — The Northern Marches</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101713;color:#eee;font-family:Georgia,serif}canvas{display:block;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none}.panel{background:linear-gradient(145deg,#111a17df,#24251ddd);border:1px solid #b69b694c;box-shadow:0 8px 30px #0008;border-radius:7px}
+#brand{position:absolute;top:14px;left:14px;padding:10px 13px;color:#d9c69b;font:12px system-ui;letter-spacing:2px}
+#stats{position:absolute;top:14px;right:14px;width:205px;padding:12px;font:12px system-ui;color:#e5ddc9}
+.label{font-size:10px;letter-spacing:1px;color:#b9aa8c;margin:5px 0}.bar{height:8px;background:#282a25;border-radius:8px;overflow:hidden;margin-bottom:8px}.fill{height:100%;width:100%}#hp{background:linear-gradient(90deg,#6d2424,#c85a43)}#xp{background:linear-gradient(90deg,#82703b,#d8c17b)}
+#quest{position:absolute;left:14px;top:74px;padding:12px 14px;max-width:230px;font:12px/1.45 system-ui;color:#ded5c0}#quest b{color:#d6bd83;letter-spacing:1px;font-size:10px}
+#hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);padding:9px 13px;font:11px system-ui;color:#ded5c0;white-space:nowrap}
+#toast{position:absolute;top:28%;left:50%;transform:translateX(-50%);color:#e2c98e;font:18px Georgia;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .25s}
+#start{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#28362d 0%,#101713 70%)}#startbox{width:min(540px,calc(100% - 32px));padding:30px;text-align:center}
+h1{font:500 clamp(27px,6vw,45px) Georgia;color:#e1d0a7;letter-spacing:2px;margin:0 0 8px}#start p{font:14px/1.6 system-ui;color:#c6c0ad}
+button{pointer-events:auto;border:1px solid #c3a66e;background:#75603a;color:#fff0ca;padding:12px 20px;border-radius:4px;font:12px system-ui;letter-spacing:1px}
+#touch{position:fixed;inset:auto 12px 66px 12px;display:none;justify-content:space-between;align-items:end;pointer-events:none}#pad{display:grid;grid-template-columns:repeat(3,44px);gap:4px}#pad button,#acts button{padding:0;width:44px;height:44px;font-size:15px;touch-action:none}#acts{display:flex;gap:6px}#acts button{width:52px;height:52px;font-size:10px}
+#wardrobe{position:fixed;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,90vw);padding:18px;display:none;pointer-events:auto;font:12px system-ui}#wardrobe button{margin:4px;padding:9px}#wardrobe h3{color:#e0c995;font:22px Georgia;margin:0 0 8px}
+#wardrobeOpen{position:fixed;z-index:4;left:14px;top:130px;display:none;padding:9px;font:10px system-ui}
+@media(pointer:coarse){#touch{display:flex}#hint{white-space:normal;max-width:48%;left:50%;font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud">
+<div id="brand" class="panel">LEGENDS OF THE LOST WORLD <span style="color:#8d866f">/ THE NORTHERN MARCHES</span></div>
+<div id="stats" class="panel"><div id="level">ОХОТНИЦА · УРОВЕНЬ 1</div><div class="label">ЗДОРОВЬЕ <span id="hptext">100 / 100</span></div><div class="bar"><div id="hp" class="fill"></div></div><div class="label">ОПЫТ <span id="xptext">0 / 100</span></div><div class="bar"><div id="xp" class="fill" style="width:0%"></div></div></div>
+<div id="quest" class="panel"><b>ТЕКУЩЕЕ ЗАДАНИЕ</b><br>Следы у старой мельницы<br><span style="color:#a9a18e">Доберись до заброшенной деревни и осмотрись.</span></div>
+<div id="toast"></div><div id="hint" class="panel">WASD — движение · Shift — бег · мышь — камера · ЛКМ — удар · Телефон: экранные кнопки</div></div>
+<button id="wardrobeOpen">ЭКИПИРОВКА</button>
+<div id="wardrobe" class="panel"><h3>Снаряжение охотницы</h3><p style="color:#c6c0ad">Выбери походный облик.</p><button data-look="traveler">Путница</button><button data-look="hunter">Охотница</button><button data-look="cloak">Плащ</button><button id="closeWardrobe">ЗАКРЫТЬ</button></div>
+<div id="touch"><div id="pad"><span></span><button data-key="KeyW">▲</button><span></span><button data-key="KeyA">◀</button><button data-key="KeyS">▼</button><button data-key="KeyD">▶</button></div><div id="acts"><button id="attack">УДАР</button><button id="run">БЕГ</button></div></div>
+<div id="start"><div id="startbox" class="panel"><h1>THE NORTHERN MARCHES</h1><div style="letter-spacing:4px;color:#b19a6d;font:10px system-ui">A TALE FROM THE LOST WORLD</div><p>Северная граница королевства. Дождливые поля, старые деревни и лес, который помнит слишком многое.</p><p>Ты — охотница, прибывшая по следу исчезнувшего каравана. У старой мельницы кто-то оставил свежие следы.</p><button id="play">НАЧАТЬ ПУТЕШЕСТВИЕ</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const canvas=document.querySelector('#game'),keys={};let scene,camera,renderer,player,started=false,yaw=0,pitch=.16,hp=100,xp=0,level=1,attackCD=0,toastT=0;
+const clock=new THREE.Clock(),enemies=[],things=[];
+const mat=(c,r=1)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+function mesh(parent,geo,material,x,y,z){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);parent.add(m);return m}
+function box(parent,x,y,z,a,b,c,m){return mesh(parent,new THREE.BoxGeometry(a,b,c),m,x,y,z)}
+function toast(s){const el=document.querySelector('#toast');el.textContent=s;el.style.opacity=1;toastT=2.5}
+function tree(x,z,scale=1){const g=new THREE.Group();mesh(g,new THREE.CylinderGeometry(.16,.28,2.4,7),mat(0x40372b),0,1.2,0);for(let i=0;i<3;i++){const crown=mesh(g,new THREE.ConeGeometry(1.35-i*.2,2.7,8),mat(i===0?0x26382b:0x344331),0,2.4+i*.62,0);crown.rotation.y=i*.4}g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g)}
+function house(x,z,rot=0){const g=new THREE.Group(),stone=mat(0x777366),wood=mat(0x46372a),roof=mat(0x403b32);box(g,0,1.15,0,4.2,2.3,3.4,stone);const r=mesh(g,new THREE.ConeGeometry(3.1,1.7,4),roof,0,3.1,0);r.rotation.y=Math.PI/4;r.scale.set(1,.75,.85);box(g,-.65,.85,-1.72,.85,1.6,.08,wood);box(g,.8,.85,-1.72,.85,1.6,.08,wood);box(g,0,.65,-1.79,.8,1.3,.12,mat(0x30261e));g.position.set(x,0,z);g.rotation.y=rot;scene.add(g)}
+function makePlayer(){const g=new THREE.Group(),skin=mat(0xc69a7c),hair=mat(0x39271f),leather=mat(0x51402e),cloth=mat(0x39423a),steel=mat(0x85877e,.45);
+const torso=mesh(g,new THREE.CapsuleGeometry(.29,.55,6,12),leather,0,1.38,0);torso.scale.set(.9,1,.78);
+mesh(g,new THREE.SphereGeometry(.235,16,12),skin,0,2.08,0);
+const haircap=mesh(g,new THREE.SphereGeometry(.25,12,10,0,Math.PI*2,0,Math.PI*.62),hair,0,2.17,0);
+const braid=mesh(g,new THREE.CapsuleGeometry(.07,.55,5,8),hair,.12,1.83,.17);braid.rotation.x=-.25;
+mesh(g,new THREE.CylinderGeometry(.11,.13,.2,10),skin,0,1.83,0);
+for(const s of [-1,1]){const arm=mesh(g,new THREE.CapsuleGeometry(.11,.5,5,8),leather,s*.39,1.34,0);arm.rotation.z=-s*.16;const leg=mesh(g,new THREE.CapsuleGeometry(.14,.65,5,8),cloth,s*.17,.45,0);leg.rotation.z=s*.02}
+const cloak=mesh(g,new THREE.BoxGeometry(.67,.95,.12),mat(0x303b34),0,1.25,.3);cloak.rotation.x=-.08;
+const sword=new THREE.Group();mesh(sword,new THREE.BoxGeometry(.075,.92,.04),steel,0,.52,0);box(sword,0,.08,0,.38,.07,.1,mat(0x9d8150));mesh(sword,new THREE.CylinderGeometry(.04,.04,.26,7),mat(0x34251b),0,-.06,0);sword.position.set(.48,1.05,-.08);sword.rotation.z=-.25;g.add(sword);
+g.userData={cloak,sword,torso};scene.add(g);return g}
+function enemy(x,z){const g=new THREE.Group(),f=mat(0x56594b),d=mat(0x282c27),eyes=new THREE.MeshStandardMaterial({color:0xe66b36,emissive:0x8c2108,emissiveIntensity:1.4});mesh(g,new THREE.CapsuleGeometry(.38,.58,4,8),f,0,1,0);mesh(g,new THREE.SphereGeometry(.28,9,8),d,0,1.68,0);for(const s of [-1,1])mesh(g,new THREE.SphereGeometry(.045,6,6),eyes,s*.11,1.72,-.23);g.position.set(x,0,z);g.userData={hp:70,alive:true};scene.add(g);enemies.push(g)}
+function init(){scene=new THREE.Scene();scene.background=new THREE.Color(0x9aa49a);scene.fog=new THREE.FogExp2(0x9aa49a,.012);camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,260);renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+scene.add(new THREE.HemisphereLight(0xd9e0d4,0x3b382d,1.8));const sun=new THREE.DirectionalLight(0xffe2b1,2.1);sun.position.set(-35,55,20);sun.castShadow=true;scene.add(sun);
+const ground=mesh(scene,new THREE.PlaneGeometry(240,240),mat(0x59634b),0,-.04,0);ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;
+const path=mesh(scene,new THREE.PlaneGeometry(7,115),mat(0x746d58),0,.005,-25);path.rotation.x=-Math.PI/2;
+for(let i=0;i<90;i++){let x=(Math.random()-.5)*115,z=(Math.random()-.5)*115;if(Math.abs(x)<7&&z<15&&z>-65)continue;tree(x,z,.7+Math.random()*.8)}
+house(-13,-23,.2);house(-20,-31,-.2);house(17,-40,.6);house(12,-32,-.4);
+for(let i=0;i<32;i++){const rock=mesh(scene,new THREE.DodecahedronGeometry(.25+Math.random()*.55),mat(0x77796b),(Math.random()-.5)*70,.15,(Math.random()-.5)*90);rock.rotation.set(Math.random(),Math.random(),Math.random())}
+player=makePlayer();player.position.set(0,0,8);enemy(5,-8);enemy(-8,-19);enemy(19,-28);
+const water=mesh(scene,new THREE.PlaneGeometry(20,80),mat(0x465c5b,.3),34,-.02,-35);water.rotation.x=-Math.PI/2;
+}
+function forward(){return new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw))}
+function attack(){if(attackCD>0)return;attackCD=.55;player.userData.sword.rotation.z=-1.4;setTimeout(()=>player&& (player.userData.sword.rotation.z=-.25),180);let hit=false;for(const e of enemies){if(!e.userData.alive)continue;const d=e.position.distanceTo(player.position),dir=e.position.clone().sub(player.position).normalize();if(d<3&&forward().dot(dir)>.15){e.userData.hp-=40;hit=true;if(e.userData.hp<=0){e.userData.alive=false;scene.remove(e);xp+=40;toast('Чудовище повержено · +40 опыта');if(xp>=level*100){xp-=level*100;level++;toast('Новый уровень · '+level)}}}}if(!hit)toast('Удар рассёк воздух');hud()}
+function hud(){document.querySelector('#hptext').textContent=Math.ceil(hp)+' / 100';document.querySelector('#xptext').textContent=xp+' / '+level*100;document.querySelector('#level').textContent='ОХОТНИЦА · УРОВЕНЬ '+level;document.querySelector('#hp').style.width=hp+'%';document.querySelector('#xp').style.width=(xp/(level*100)*100)+'%'}
+function update(dt){if(!started)return;attackCD=Math.max(0,attackCD-dt);let v=new THREE.Vector3();if(keys.KeyW)v.add(forward());if(keys.KeyS)v.sub(forward());if(keys.KeyD)v.add(new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)));if(keys.KeyA)v.add(new THREE.Vector3(-Math.cos(yaw),0,Math.sin(yaw)));if(v.lengthSq()){v.normalize();player.position.addScaledVector(v,(keys.ShiftLeft?7.5:4.5)*dt);player.rotation.y=Math.atan2(-v.x,-v.z)}
+for(const e of enemies){if(!e.userData.alive)continue;const d=e.position.distanceTo(player.position);if(d<15&&d>1.5){const dir=player.position.clone().sub(e.position).normalize();e.position.addScaledVector(dir,dt*1.25);e.rotation.y=Math.atan2(-dir.x,-dir.z)}else if(d<=1.5){hp=Math.max(0,hp-8*dt);hud();if(hp<=0){started=false;toast('Ты пала. Обнови страницу, чтобы начать заново.')}}}
+const target=new THREE.Vector3(player.position.x,1.65,player.position.z);const off=new THREE.Vector3(Math.sin(yaw)*7,3.0+pitch*3,Math.cos(yaw)*7);camera.position.lerp(target.clone().add(off),1-Math.pow(.001,dt));camera.lookAt(target);if(toastT>0&&(toastT-=dt)<=0)document.querySelector('#toast').style.opacity=0}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);renderer.render(scene,camera)}
+document.querySelector('#play').onclick=()=>{document.querySelector('#start').style.display='none';started=true;document.querySelector('#wardrobeOpen').style.display='block';toast('Следы ведут к заброшенной деревне')};
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space')attack()});document.addEventListener('keyup',e=>keys[e.code]=false);
+document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas&&started){yaw-=e.movementX*.003;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.002,-.1,.5)}});
+canvas.addEventListener('click',()=>{if(started&&matchMedia('(pointer:fine)').matches){canvas.requestPointerLock?.();attack()}});
+let look=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&started){look={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)}});canvas.addEventListener('pointermove',e=>{if(look){yaw-=(e.clientX-look.x)*.006;pitch=THREE.MathUtils.clamp(pitch-(e.clientY-look.y)*.003,-.1,.5);look={x:e.clientX,y:e.clientY}}});canvas.addEventListener('pointerup',()=>look=null);
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();keys[k]=true};['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+document.querySelector('#attack').onpointerdown=e=>{e.preventDefault();attack()};document.querySelector('#run').onpointerdown=()=>keys.ShiftLeft=true;['pointerup','pointercancel','pointerleave'].forEach(ev=>document.querySelector('#run').addEventListener(ev,()=>keys.ShiftLeft=false));
+document.querySelector('#wardrobeOpen').onclick=()=>document.querySelector('#wardrobe').style.display='block';document.querySelector('#closeWardrobe').onclick=()=>document.querySelector('#wardrobe').style.display='none';
+document.querySelectorAll('[data-look]').forEach(b=>b.onclick=()=>{if(!player)return;player.userData.cloak.visible=b.dataset.look!=='traveler';player.userData.torso.material=b.dataset.look==='hunter'?mat(0x51402e):mat(0x66503b);toast('Облик изменён')});
+addEventListener('resize',()=>{if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
+try{init();animate()}catch(e){document.querySelector('#toast').textContent='Ошибка запуска: '+e.message;document.querySelector('#toast').style.opacity=1}
+</script>
+</body></html>
